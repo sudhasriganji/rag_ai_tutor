@@ -3,6 +3,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
+
 from langchain_chroma import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -10,6 +11,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnablePassthrough
 from langchain_core.output_parsers import StrOutputParser
+from ingest import build_vector_db
 
 
 # =========================================================
@@ -20,6 +22,13 @@ env_path = Path(__file__).resolve().parent / ".env"
 load_dotenv(dotenv_path=env_path)
 
 API_KEY = os.getenv("GOOGLE_API_KEY")
+
+if not API_KEY:
+    try:
+        import streamlit as st
+        API_KEY = st.secrets["GOOGLE_API_KEY"]
+    except Exception:
+        API_KEY = None
 
 if not API_KEY:
     raise ValueError(
@@ -47,6 +56,9 @@ def answer_question(query: str) -> str:
     # -----------------------------------------------------
     # 2. Load Chroma vector database
     # -----------------------------------------------------
+
+    if not os.path.exists("./chroma_db"):
+        build_vector_db()
 
     vector_store = Chroma(
         persist_directory="./chroma_db",
